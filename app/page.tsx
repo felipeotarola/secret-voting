@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { PublicPollList } from "@/components/public-poll-list"
+import { AiFeatureCard } from "@/components/ai-feature-card"
 import { ChevronRight, Vote, Clock, Eye, ImageIcon, Search, Sparkles } from "lucide-react"
 import { motion } from "framer-motion"
 
@@ -57,6 +58,11 @@ export default function Home() {
         {/* Decorative elements */}
         <div className="absolute -bottom-10 left-1/4 w-20 h-20 bg-violet-500/10 rounded-full blur-xl"></div>
         <div className="absolute -top-10 right-1/4 w-16 h-16 bg-pink-500/10 rounded-full blur-xl"></div>
+      </div>
+
+      {/* AI Feature Card */}
+      <div className="max-w-2xl mx-auto mb-16">
+        <AiFeatureCard />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-5xl mx-auto mb-16">

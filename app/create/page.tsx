@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -9,12 +10,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
-import { Trash, Plus, AlertCircle } from "lucide-react"
+import { Trash, Plus, AlertCircle, Sparkles, Loader2 } from "lucide-react"
 import { createPoll } from "@/lib/actions"
+import { generatePollContent } from "@/lib/ai-utils"
 import { useAuth } from "@/context/auth-context"
 import { ImageUpload } from "@/components/image-upload"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { UserSearch } from "@/components/user-search"
+import { toast } from "@/components/ui/use-toast"
 import type { Profile } from "@/lib/database.types"
 import { addUserToPoll } from "@/lib/actions"
 
@@ -32,6 +35,8 @@ export default function CreatePoll() {
   const [question, setQuestion] = useState("")
   const [isPrivate, setIsPrivate] = useState(false)
   const [selectedUsers, setSelectedUsers] = useState<Profile[]>([])
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [titleFocused, setTitleFocused] = useState(false)
 
   useEffect(() => {
     // Redirect to login if not authenticated
@@ -99,6 +104,43 @@ export default function CreatePoll() {
     }
   }
 
+  const handleGenerateContent = async () => {
+    if (!title.trim()) {
+      toast({
+        title: "Title required",
+        description: "Please enter a poll title first",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsGenerating(true)
+    setError(null)
+
+    try {
+      const generatedContent = await generatePollContent(title)
+
+      setQuestion(generatedContent.question)
+      setDescription(generatedContent.description)
+
+      // Only update options if we got valid options back
+      if (generatedContent.options && generatedContent.options.length >= 2) {
+        setOptions(generatedContent.options.map((option) => option.text))
+      }
+
+      toast({
+        title: "Content generated",
+        description: "AI has filled in your poll details. Feel free to edit before submitting.",
+        variant: "success",
+      })
+    } catch (error) {
+      console.error("Failed to generate poll content:", error)
+      setError("Failed to generate poll content. Please try again or fill in the form manually.")
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -161,17 +203,46 @@ export default function CreatePoll() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="title" className="text-base">
-                Poll Title
-              </Label>
+              <div className="flex justify-between items-center">
+                <Label htmlFor="title" className="text-base">
+                  Poll Title
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-1 text-xs border-violet-300 hover:bg-violet-50"
+                  onClick={handleGenerateContent}
+                  disabled={isGenerating || !title.trim()}
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3 w-3 text-violet-500 mr-1" />
+                      Generate with AI
+                    </>
+                  )}
+                </Button>
+              </div>
               <Input
                 id="title"
                 placeholder="What would you like to ask?"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                onFocus={() => setTitleFocused(true)}
+                onBlur={() => setTitleFocused(false)}
                 required
                 className="border-2 focus-visible:ring-vibrant-purple"
               />
+              {titleFocused && title.trim() && (
+                <p className="text-xs text-muted-foreground">
+                  After entering a title, you can use AI to help fill in the rest of the form.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
